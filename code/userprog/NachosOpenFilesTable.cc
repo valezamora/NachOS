@@ -1,19 +1,19 @@
 #include "NachosOpenFilesTable.h"
 
-NachosOpenFilesTable(){
-	usage = 1;
-	openFilesMap = new Bitmap(_SIZE);
-	openFiles = new int[_SIZE];	
+NachosOpenFilesTable::NachosOpenFilesTable(){
+	this->usage = 1;
+	this->openFilesMap = new BitMap(_SIZE);
+	this->openFiles = new int[_SIZE];	
 }
 
-~NachosOpenFilesTable(){
+NachosOpenFilesTable::~NachosOpenFilesTable(){
 	delete openFilesMap;
 	delete openFiles;
 }
 
 // Register the file handle
-int Open( int UnixHandle ){
-	int posicion = openFilesMap.Find();
+int NachosOpenFilesTable::Open( int UnixHandle ){
+	int posicion = openFilesMap->Find();
 	if(posicion != -1){
 		//hay espacio
 		openFiles[posicion] = UnixHandle;
@@ -25,35 +25,36 @@ int Open( int UnixHandle ){
 
 
 // Unregister the file handle
-int Close( int NachosHandle ){
-	openFilesMap.Clear(NachosHandle);
-}
-
-
-bool isOpened( int NachosHandle ){
-	return openFilesMap.Test(NachosHandle);	
-}
-
-
-int getUnixHandle( int NachosHandle ){
+int NachosOpenFilesTable::Close( int NachosHandle ){
+	openFilesMap->Clear(NachosHandle);
 	return openFiles[NachosHandle];
 }
 
 
-void addThread(){
+bool NachosOpenFilesTable::isOpened( int NachosHandle ){
+	return openFilesMap->Test(NachosHandle);	
+}
+
+
+int NachosOpenFilesTable::getUnixHandle( int NachosHandle ){
+	return openFiles[NachosHandle];
+}
+
+
+void NachosOpenFilesTable::addThread(){
 	usage++;	
 }
 
 
-void delThread(){
+void NachosOpenFilesTable::delThread(){
 	usage--;
 }
 
 
-void Print(){
+void NachosOpenFilesTable::Print(){
 	printf("Nachos\tUnix");
 	for(int i = 0; i<_SIZE; ++i){
-		if(openFilesMap.Test(i)){
+		if(openFilesMap->Test(i)){
 			printf("%d \t\t %d", i, openFiles[i]);
 		}
 	}

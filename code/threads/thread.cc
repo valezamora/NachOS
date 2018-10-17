@@ -40,6 +40,7 @@ Thread::Thread(const char* threadName)
     status = JUST_CREATED;
 #ifdef USER_PROGRAM
     space = NULL;
+    table = new NachosOpenFilesTable();
 #endif
 }
 

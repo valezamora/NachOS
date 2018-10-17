@@ -24,7 +24,6 @@
 #include "copyright.h"
 #include "system.h"
 #include "syscall.h"
-#include "NachosOpenFilesTable.h"
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -50,7 +49,7 @@ void Nachos_Halt() {                    // System call 0
 
 }       // Nachos_Halt
 
-void Nachos_Open(NachosOpenFilesTable* table) {                    // System call 5
+void Nachos_Open() {                    // System call 5
 /* System call definition described to user
 	int Open(
 		char *name	// Register 4
@@ -65,7 +64,7 @@ void Nachos_Open(NachosOpenFilesTable* table) {                    // System cal
 	char c = (char)machine->ReadRegister(4);
 	int unixHandle = open(&c, O_RDWR);	//abre el archivo y guarda el identificador
 	if(unixHandle != -1){
-		result = table->Open(unixHandle);
+		result = currentThread->table->Open(unixHandle);
 	}
 	
 	machine->WriteRegister(2, result);
@@ -75,7 +74,7 @@ void Nachos_Open(NachosOpenFilesTable* table) {                    // System cal
 	
 }       // Nachos_Open
 
-void Nachos_Write(NachosOpenFilesTable* table) {                   // System call 7
+void Nachos_Write() {                   // System call 7
 
 /* System call definition described to user
         void Write(
@@ -115,8 +114,8 @@ void Nachos_Write(NachosOpenFilesTable* table) {                   // System cal
 			// Get the unix handle from our table for open files
 			// Do the write to the already opened Unix file
 			// Return the number of chars written to user, via r2
-			if(table->isOpened(id)){
-				int unixHandle = table->getUnixHandle(id);
+			if(currentThread->table->isOpened(id)){
+				int unixHandle = currentThread->table->getUnixHandle(id);
 				int result = write(unixHandle, buffer, size);
 				machine->WriteRegister(2, result);
 			}else{
@@ -160,7 +159,6 @@ void Nachos_Write(NachosOpenFilesTable* table) {                   // System cal
 void ExceptionHandler(ExceptionType which)
 {
     int type = machine->ReadRegister(2);
-    NachosOpenFilesTable* table = new NachosOpenFilesTable();
 	
     switch ( which ) {
 		
@@ -170,11 +168,14 @@ void ExceptionHandler(ExceptionType which)
                 Nachos_Halt();             // System call # 0
                 break;
              case SC_Open:
-                Nachos_Open(table);             // System call # 5
+                Nachos_Open();             // System call # 5
                 break;
              case SC_Write:
-                Nachos_Write(table);             // System call # 7
+                Nachos_Write();             // System call # 7
                 break;
+             case SC_Exit:
+             	currentThread->Finish();
+             	break;
              default:
                 printf("Unexpected syscall exception %d\n", type );
                 ASSERT(false);
