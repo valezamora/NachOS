@@ -5,6 +5,7 @@
 // All rights reserved.  See copyright.h for copyright notice and limitation 
 // of liability and disclaimer of warranty provisions.
 
+
 #include "copyright.h"
 #include "system.h"
 #include "preemptive.h"
@@ -24,6 +25,7 @@ Timer *timer;				// the hardware timer device,
 PreemptiveScheduler* preemptiveScheduler = NULL;
 const long long DEFAULT_TIME_SLICE = 50000;
 
+
 #ifdef FILESYS_NEEDED
 FileSystem  *fileSystem;
 #endif
@@ -34,6 +36,7 @@ SynchDisk   *synchDisk;
 
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
+BitMap *mapMemoria;		// Variable definition, no extern prepended
 #endif
 
 #ifdef NETWORK
@@ -95,6 +98,7 @@ Initialize(int argc, char **argv)
     
 #ifdef USER_PROGRAM
     bool debugUserProg = false;	// single step user program
+    mapMemoria = new BitMap(32);
 #endif
 #ifdef FILESYS_NEEDED
     bool format = false;	// format disk
