@@ -23,6 +23,8 @@ class AddrSpace {
     AddrSpace(OpenFile *executable);	// Create an address space,
 					// initializing it with the program
 					// stored in the file "executable"
+	AddrSpace(AddrSpace*);	//Create address space from another address space
+	
     ~AddrSpace();			// De-allocate an address space
 
 	void AnularPagina(int);

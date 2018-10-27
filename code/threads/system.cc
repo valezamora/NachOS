@@ -37,6 +37,7 @@ SynchDisk   *synchDisk;
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine *machine;	// user program memory and registers
 BitMap *mapMemoria;		// Variable definition, no extern prepended
+Semaphore *consoleSem;
 #endif
 
 #ifdef NETWORK
@@ -99,6 +100,7 @@ Initialize(int argc, char **argv)
 #ifdef USER_PROGRAM
     bool debugUserProg = false;	// single step user program
     mapMemoria = new BitMap(32);
+    consoleSem = new Semaphore("semConsola", 1);
 #endif
 #ifdef FILESYS_NEEDED
     bool format = false;	// format disk

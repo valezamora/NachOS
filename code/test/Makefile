@@ -65,6 +65,12 @@ matmult: matmult.o start.o
 	$(LD) $(LDFLAGS) start.o matmult.o -o matmult.coff
 	../bin/coff2noff matmult.coff matmult
 
+fork2.o: fork2.c
+	$(CC) $(CFLAGS) -c fork2.c
+fork2: fork2.o start.o
+	$(LD) $(LDFLAGS) start.o fork2.o -o fork2.coff
+	../bin/coff2noff fork2.coff fork2
+
 
 # Estas reglas sirven para compilar programas simples,
 # que consistan en un único fuente.

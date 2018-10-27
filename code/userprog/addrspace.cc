@@ -72,11 +72,11 @@ AddrSpace::AddrSpace(OpenFile *executable)
     size = noffH.code.size + noffH.initData.size + noffH.uninitData.size + UserStackSize;	// we need to increase the size
 						// to leave room for the stack
 
-	printf("\nCodigo: %d\n", noffH.code.size);
-	printf("inicializado: %d\n", noffH.initData.size);
-	printf("no inicializado: %d\n", noffH.uninitData.size);		
-	printf("pila: %d\n", UserStackSize);			
-	printf("size = %d\n", size);
+	//printf("\nCodigo: %d\n", noffH.code.size);
+	//printf("inicializado: %d\n", noffH.initData.size);
+	//printf("no inicializado: %d\n", noffH.uninitData.size);		
+	//printf("pila: %d\n", UserStackSize);			
+	//printf("size = %d\n", size);
     numPages = divRoundUp(size, PageSize);
     size = numPages * PageSize;
 	unsigned espacioDisponible = mapMemoria->NumClear(); 
@@ -90,7 +90,7 @@ AddrSpace::AddrSpace(OpenFile *executable)
 // first, set up the translation 
     pageTable = new TranslationEntry[numPages];
     for (i = 0; i < numPages; i++) {
-		pageTable[i].virtualPage = i;	// for now, virtual page # = phys page #
+		pageTable[i].virtualPage = i;	
 		pageTable[i].physicalPage = mapMemoria->Find();
 		pageTable[i].valid = true;
 		pageTable[i].use = false;
@@ -129,6 +129,31 @@ AddrSpace::AddrSpace(OpenFile *executable)
 			
 }
 
+AddrSpace::AddrSpace(AddrSpace* otro){
+	this->pageTable = new TranslationEntry[otro->numPages];
+    //inicializa codigo y variables
+    int i;
+    this->numPages = otro->numPages;
+    int limite = otro->numPages - (UserStackSize/PageSize); 
+    for (i = 0; i < otro->numPages; i++) {
+    	if(i<limite){
+			this->pageTable[i].physicalPage = otro->pageTable[i].physicalPage; 
+			printf("nuevo: %d otro:%d\n", pageTable[i].physicalPage, otro->pageTable[i].physicalPage);   	
+    	}else{
+    		this->pageTable[i].physicalPage = mapMemoria->Find();
+    		printf("nuevo: %d otro:%d\n", pageTable[i].physicalPage, otro->pageTable[i].physicalPage);   	
+    	}
+		this->pageTable[i].virtualPage = otro->pageTable[i].virtualPage;	
+		//printf("nuevo: %d otro: %d\n", pageTable[i].virtualPage, otro->pageTable[i].virtualPage);   	
+		pageTable[i].valid = true;
+		pageTable[i].use = false;
+		pageTable[i].dirty = false;
+		pageTable[i].readOnly = false;  // if the code segment was entirely on 
+						// a separate page, we could set its 
+					// pages to be read-only
+    }
+    
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::~AddrSpace

@@ -42,12 +42,48 @@ void returnFromSystemCall() {
 
 }       // returnFromSystemCall
 
+
+/*
+#define SC_Halt		0
+#define SC_Exit		1
+#define SC_Exec		2
+#define SC_Join		3
+#define SC_Create	4
+#define SC_Open		5
+#define SC_Read		6
+#define SC_Write	7
+#define SC_Close	8
+#define SC_Fork		9
+#define SC_Yield	10
+#define SC_SemCreate	11
+#define SC_SemDestroy	12
+#define SC_SemSignal	13
+#define SC_SemWait	14
+
+*/
+
 void Nachos_Halt() {                    // System call 0
 
         DEBUG('a', "Shutdown, initiated by user program.\n");
         interrupt->Halt();
 
 }       // Nachos_Halt
+
+void Nachos_Exit(){			//System call 1
+
+}
+
+void Nachos_Exec(){			//System call 2
+
+}
+
+void Nachos_Join(){		//System call 3
+
+}
+
+void Nachos_Create(){		//System call 4
+
+}
 
 void Nachos_Open() {                    // System call 5
 /* System call definition described to user
@@ -74,6 +110,11 @@ void Nachos_Open() {                    // System call 5
 	
 }       // Nachos_Open
 
+
+void Nachos_Read(){			//system call 6
+
+}
+
 void Nachos_Write() {                   // System call 7
 
 /* System call definition described to user
@@ -92,12 +133,13 @@ void Nachos_Write() {                   // System call 7
 	
 	//leer input 
 	int num;
-	for(int i =0; i<size; ++i){
-		num = (int)buffer[i];
+	for(int i =0; i<size; ++i){	
 		machine->ReadMem(bufDir+i , 1, &num);
+		buffer[i] = num;
 	}
+	
 	// Need a semaphore to synchronize access to console
-	// Console->P();
+	consoleSem->P();
 	switch (id) {
 		case  ConsoleInput:	// User could not write to standard input
 			machine->WriteRegister( 2, -1 );
@@ -126,11 +168,90 @@ void Nachos_Write() {                   // System call 7
 
 	}
 	// Update simulation stats, see details in Statistics class in machine/stats.cc
-	// Console->V();
+	consoleSem->V();
 
         returnFromSystemCall();		// Update the PC registers
 
 }       // Nachos_Write
+
+void Nachos_Close(){		//System call 8
+
+}
+// Pass the user routine address as a parameter for this function
+// This function is similar to "StartProcess" in "progtest.cc" file under "userprog"
+// Requires a correct AddrSpace setup to work well
+
+void NachosForkThread( void * p ) { // for 64 bits version
+
+    AddrSpace *space;
+
+    space = currentThread->space;
+    space->InitRegisters();             // set the initial register values
+    space->RestoreState();              // load page table register
+
+// Set the return address for this thread to the same as the main thread
+// This will lead this thread to call the exit system call and finish
+    machine->WriteRegister( RetAddrReg, 4 );
+
+    machine->WriteRegister( PCReg, (long) p );
+    machine->WriteRegister( NextPCReg, (long)p + 4 );
+
+    machine->Run();                     // jump to the user progam
+    ASSERT(false);
+}
+
+
+
+void Nachos_Fork() {			// System call 9
+	DEBUG( 'u', "Entering Fork System call\n" );
+	// We need to create a new kernel thread to execute the user thread
+	Thread * newT = new Thread( "child to execute Fork code" );
+	
+	// We need to share the Open File Table structure with this new child
+
+	// Child and father will also share the same address space, except for the stack
+	// Text, init data and uninit data are shared, a new stack area must be created
+	// for the new child
+	// We suggest the use of a new constructor in AddrSpace class,
+	// This new constructor will copy the shared segments (space variable) from currentThread, passed
+	// as a parameter, and create a new stack for the new child
+	newT->space = new AddrSpace( currentThread->space );
+
+	// We (kernel)-Fork to a new method to execute the child code
+	// Pass the user routine address, now in register 4, as a parameter
+	// Note: in 64 bits register 4 need to be casted to (void *)
+	newT->Fork(NachosForkThread,(void*)(machine->ReadRegister( 4 )) );
+
+	returnFromSystemCall();	// This adjust the PrevPC, PC, and NextPC registers
+
+	DEBUG( 'u', "Exiting Fork System call\n" );
+}	// Kernel_Fork
+
+
+void Nachos_Yield(){	//System call 10
+
+}
+
+
+void Nachos_SemCreate(){	//System call 11
+
+}
+
+
+void Nachos_SemDestroy(){		//System call 12
+
+}
+
+
+void Nachos_SemSignal(){		//System call 13
+
+}
+
+
+
+void Nachos_SemWait(){		//System call 14
+
+}
 
 //----------------------------------------------------------------------
 // ExceptionHandler
@@ -165,16 +286,20 @@ void ExceptionHandler(ExceptionType which)
        case SyscallException:
           switch ( type ) {
              case SC_Halt:
-                Nachos_Halt();             // System call # 0
+                Nachos_Halt();             // System call #0
                 break;
              case SC_Open:
-                Nachos_Open();             // System call # 5
+                Nachos_Open();             // System call #5
                 break;
              case SC_Write:
-                Nachos_Write();             // System call # 7
+                Nachos_Write();             // System call #7
                 break;
-             case SC_Exit:
+             case SC_Exit:					// System call #8
+             	//devolver memoria, matar semaforos
              	currentThread->Finish();
+             	break;
+             case SC_Fork:					//System call #9
+             	Nachos_Fork();
              	break;
              default:
                 printf("Unexpected syscall exception %d\n", type );
