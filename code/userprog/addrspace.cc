@@ -138,10 +138,8 @@ AddrSpace::AddrSpace(AddrSpace* otro){
     for (i = 0; i < otro->numPages; i++) {
     	if(i<limite){
 			this->pageTable[i].physicalPage = otro->pageTable[i].physicalPage; 
-			printf("nuevo: %d otro:%d\n", pageTable[i].physicalPage, otro->pageTable[i].physicalPage);   	
     	}else{
     		this->pageTable[i].physicalPage = mapMemoria->Find();
-    		printf("nuevo: %d otro:%d\n", pageTable[i].physicalPage, otro->pageTable[i].physicalPage);   	
     	}
 		this->pageTable[i].virtualPage = otro->pageTable[i].virtualPage;	
 		//printf("nuevo: %d otro: %d\n", pageTable[i].virtualPage, otro->pageTable[i].virtualPage);   	
