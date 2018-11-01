@@ -81,6 +81,9 @@ class Thread {
 
   public:
     NachosOpenFilesTable* table;
+	//para join
+	int pid;
+	
     Thread(const char* debugName);	// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted

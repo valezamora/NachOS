@@ -41,6 +41,7 @@ Thread::Thread(const char* threadName)
 #ifdef USER_PROGRAM
     space = NULL;
     table = new NachosOpenFilesTable();
+    pid = processId->Find();
 #endif
 }
 

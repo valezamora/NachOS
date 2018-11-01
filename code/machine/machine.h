@@ -71,6 +71,8 @@ enum ExceptionType { NoException,           // Everything ok!
 
 #define NumTotalRegs 	40
 
+#define MaxProcesses 300
+
 // The following class defines an instruction, represented in both
 // 	undecoded binary form
 //      decoded to identify

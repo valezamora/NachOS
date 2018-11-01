@@ -28,6 +28,8 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include "console.h"
+#include "synch.h"
 
 
 void returnFromSystemCall() {
@@ -63,26 +65,102 @@ void returnFromSystemCall() {
 */
 
 void Nachos_Halt() {                    // System call 0
-
-        DEBUG('a', "Shutdown, initiated by user program.\n");
-        interrupt->Halt();
+	DEBUG('a', "Shutdown, initiated by user program.\n");
+    interrupt->Halt();
 
 }       // Nachos_Halt
 
 void Nachos_Exit(){			//System call 1
+	//parametro: status es lo que tiene que devolverle al join para que el join devuelva.
+	
+	//matar archivos
+	
+	//matar semaforos
 
+	//Revisar si hay alguien que esta esperandome (join)
+	int currPid = 	currentThread->pid;
+	if(semaforosJoin[currPid] != NULL){
+		Semaphore* sem = (Semaphore*)semaforosJoin[currPid]; 
+		sem->V();
+		semaforosJoin[currPid] = NULL;
+		exitResult[currPid]=machine->ReadRegister(4);
+	}
+	
+	processId->Clear(currentThread->pid);
+   	currentThread->Finish();
+	returnFromSystemCall();
 }
 
-void Nachos_Exec(){			//System call 2
 
+void NachosExecThread(void * p) { // for 64 bits version
+	//ED donde se guarda el lo que viene en el registro 4 para que el hijo pueda accederlo
+	int nameDir = reg4[currentThread->pid]; 
+	char * filename = new char[100];
+	//leer input 
+	int num = 99;
+	int i = 0;
+	while(num != '\0'){	
+		machine->ReadMem(nameDir+i , 1, &num);
+		filename[i] = (char)num;
+		++i;
+	}
+	printf("Nombre archivo: %s\n", filename);
+	OpenFile *executable = fileSystem->Open(filename);
+    AddrSpace *space;
+
+    if (executable == NULL) {
+		printf("Unable to open file %s\n", filename);
+		return;
+    }
+    space = new AddrSpace(executable);    
+    currentThread->space = space;
+
+    delete executable;			// close file
+    delete filename;
+
+    space->InitRegisters();		// set the initial register values
+    space->RestoreState();		// load page table register
+
+	machine->Run();			// jump to the user progam
+    ASSERT(false);			// machine->Run never returns;
+	
+}
+
+
+void Nachos_Exec(){			//System call 2
+	//Con procesos
+	Thread * newTh = new Thread( "child to execute Exec code" );
+	newTh->space = new AddrSpace(currentThread->space);
+	reg4[newTh->pid] = machine->ReadRegister(4);
+	newTh->Fork(NachosExecThread,(void*)(machine->ReadRegister( 4 )) );
+	
+	machine->WriteRegister(2, newTh->pid);
+	returnFromSystemCall();
 }
 
 void Nachos_Join(){		//System call 3
+	printf("Entro al join");
+	int newPid = machine->ReadRegister(4);
+	int result = 0;
+	if(processId->Test(newPid)){
+		// esta activo el hilo
+			joinSem->P();	
+		//current thread crea semaforo y hace wait 
+		Semaphore* wait = new Semaphore((char*)(currentThread->getName()), 0);
 
+		semaforosJoin[newPid] = wait;
+		joinSem->V();
+		wait->P();	
+		
+		//devuelve el retorno del exit del hilo que estaba esperando
+		result = exitResult[newPid];
+	}
+	machine->WriteRegister(2, result);	
+	returnFromSystemCall();
 }
 
 void Nachos_Create(){		//System call 4
-
+	returnFromSystemCall();
 }
 
 void Nachos_Open() {                    // System call 5
@@ -96,9 +174,20 @@ void Nachos_Open() {                    // System call 5
 	// between user file and unix file
 	// Verify for errors
 
+	char filename[100];
+    int i=0;
+	int memval = 99;
+    int vaddr = machine->ReadRegister(4);
+    machine->ReadMem(vaddr, 1, &memval);
+    while ((*(char*)&memval) != '\0') {
+        filename[i]  = (char)memval;
+        ++i;
+        vaddr++;
+        machine->ReadMem(vaddr, 1, &memval);
+    }
+	filename[i] = (char)memval;
 	int result = -1;
-	char c = (char)machine->ReadRegister(4);
-	int unixHandle = open(&c, O_RDWR);	//abre el archivo y guarda el identificador
+	int unixHandle = open(filename, O_RDWR);	//abre el archivo y guarda el identificador
 	if(unixHandle != -1){
 		result = currentThread->table->Open(unixHandle);
 	}
@@ -112,7 +201,7 @@ void Nachos_Open() {                    // System call 5
 
 
 void Nachos_Read(){			//system call 6
-
+	returnFromSystemCall();
 }
 
 void Nachos_Write() {                   // System call 7
@@ -175,7 +264,7 @@ void Nachos_Write() {                   // System call 7
 }       // Nachos_Write
 
 void Nachos_Close(){		//System call 8
-
+	returnFromSystemCall();
 }
 // Pass the user routine address as a parameter for this function
 // This function is similar to "StartProcess" in "progtest.cc" file under "userprog"
@@ -229,7 +318,9 @@ void Nachos_Fork() {			// System call 9
 
 
 void Nachos_Yield(){	//System call 10
-
+	
+	currentThread->Yield();
+	returnFromSystemCall();
 }
 
 
@@ -295,11 +386,20 @@ void ExceptionHandler(ExceptionType which)
                 Nachos_Write();             // System call #7
                 break;
              case SC_Exit:					// System call #8
-             	//devolver memoria, matar semaforos
-             	currentThread->Finish();
+             	//devolver memoria
+				Nachos_Exit();
              	break;
              case SC_Fork:					//System call #9
              	Nachos_Fork();
+             	break;
+             case SC_Yield:
+             	Nachos_Yield();
+             	break;
+             case SC_Exec:
+             	Nachos_Exec();
+             	break;
+             case SC_Join:
+             	Nachos_Join();
              	break;
              default:
                 printf("Unexpected syscall exception %d\n", type );

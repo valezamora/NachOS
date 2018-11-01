@@ -37,6 +37,12 @@ extern Timer *timer;				// the hardware alarm clock
 extern Machine* machine;	// user program memory and registers
 extern BitMap* mapMemoria;		// Declares a global variable defined elsewhere
 extern Semaphore *consoleSem;
+
+extern BitMap* processId; //id de procesos
+extern Semaphore * joinSem;
+extern void* semaforosJoin[MaxProcesses];
+extern int exitResult[MaxProcesses];
+extern int reg4[MaxProcesses];
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

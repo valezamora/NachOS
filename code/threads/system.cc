@@ -38,6 +38,13 @@ SynchDisk   *synchDisk;
 Machine *machine;	// user program memory and registers
 BitMap *mapMemoria;		// Variable definition, no extern prepended
 Semaphore *consoleSem;
+
+BitMap* processId; //id de procesos
+Semaphore * joinSem;
+void* semaforosJoin[MaxProcesses];
+int exitResult[MaxProcesses];
+int reg4[MaxProcesses];
+
 #endif
 
 #ifdef NETWORK
@@ -101,6 +108,10 @@ Initialize(int argc, char **argv)
     bool debugUserProg = false;	// single step user program
     mapMemoria = new BitMap(32);
     consoleSem = new Semaphore("semConsola", 1);
+    
+    processId  = new BitMap(MaxProcesses);
+    joinSem = new Semaphore("semJoin", 1);	//semaforo para ED
+    
 #endif
 #ifdef FILESYS_NEEDED
     bool format = false;	// format disk
