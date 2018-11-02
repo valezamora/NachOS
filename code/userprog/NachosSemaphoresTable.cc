@@ -24,6 +24,9 @@ int NachosSemaphoresTable::DelSemaphore(int id){
 	return 0;
 }
 
+bool NachosSemaphoresTable::isActive(int id){
+	return activeSemaphoresMap->Test(id);
+}
 
 int NachosSemaphoresTable::signalSem(int id){
 	Semaphore* s = (Semaphore*)(semaphores[id]);
@@ -43,4 +46,12 @@ void NachosSemaphoresTable::addThread(){
 
 void NachosSemaphoresTable::delThread(){
 	usage--;
+}
+
+int NachosSemaphoresTable::getUsage(){
+	return usage;
+}
+
+int NachosSemaphoresTable::getSize(){
+	return _SIZE_SEM;
 }

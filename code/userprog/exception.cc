@@ -71,16 +71,39 @@ void Nachos_Halt() {                    // System call 0
 }       // Nachos_Halt
 
 void Nachos_Exit(){			//System call 1
-	//parametro: status es lo que tiene que devolverle al join para que el join devuelva.
+
 	
 	//matar archivos
 	
 	filesTable->delThread();
-	
+	if(filesTable->getUsage() == 0){	//ultimo hilo
+		for(int i = 0; i<filesTable->getSize(); ++i){	//cierra todos los archivos que hayan quedado abiertos
+			if(filesTable->isOpened(i)){
+				close(filesTable->getUnixHandle(i));
+			}
+		}
+		delete filesTable;
+	}
+		
 	//matar semaforos
-
+	
+	semTable->delThread();
+	if(semTable->getUsage() == 0){	//ultimo hilo
+		for(int j = 0; j<semTable->getSize(); ++j){	//cierra todos los semaforos que hayan quedado abiertos
+			if(semTable->isActive(j)){
+				// elimina el semaforo
+				semTable->DelSemaphore(j);
+			}
+		}
+		delete semTable;
+	}
+	
+	//devolver memoria
+	delete currentThread->space;	
+	
 	//Revisar si hay alguien que esta esperandome (join)
 	int currPid = 	currentThread->pid;
+	//guarda return 
 	if(semaforosJoin[currPid] != NULL){
 		Semaphore* sem = (Semaphore*)semaforosJoin[currPid]; 
 		sem->V();
@@ -217,8 +240,12 @@ void Nachos_Read(){			//system call 6
 	int bufDir = machine->ReadRegister(4); 	//buffer       
     int size = machine->ReadRegister(5);	// Read size to write
    	int id = machine->ReadRegister( 6 );	// Read file descriptor
-   	int idUnix = filesTable->getUnixHandle(id);
-	int bytesRead = read(idUnix, &bufDir, size);
+   	int bytesRead = -1;
+   	if(filesTable->isOpened(id)){
+   		int idUnix = filesTable->getUnixHandle(id);
+		bytesRead = read(idUnix, &bufDir, size);	
+   	}
+   	
 	
 	machine->WriteRegister( 2, bytesRead);
 	
@@ -288,6 +315,7 @@ void Nachos_Close(){		//System call 8
 	int fileId = machine->ReadRegister(4);
 	int unixId = filesTable->getUnixHandle(fileId);
 	close(unixId);
+	filesTable->Close(fileId);
 	returnFromSystemCall();
 }
 

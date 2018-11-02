@@ -59,3 +59,11 @@ void NachosOpenFilesTable::Print(){
 		}
 	}
 }
+
+int NachosOpenFilesTable::getUsage(){
+	return usage;
+}
+
+int NachosOpenFilesTable::getSize(){
+	return _SIZE;
+}

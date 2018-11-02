@@ -12,10 +12,12 @@ class NachosSemaphoresTable {
     int DelSemaphore( int id );   
     int signalSem(int id);
     int waitSem(int id);
-    //Semaphore getSem(int id);   
+    bool isActive(int id);
+
     void addThread();		// If a user thread is using this table, add it
     void delThread();		// If a user thread is using this table, delete it
-
+	int getUsage();
+	int getSize();
     //void Print();               // Print contents
     
   private:
