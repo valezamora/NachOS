@@ -15,6 +15,7 @@
 #include "interrupt.h"
 #include "stats.h"
 #include "timer.h"
+#include "NachosOpenFilesTable.h"
 
 
 // Initialization and cleanup routines
@@ -34,9 +35,14 @@ extern Timer *timer;				// the hardware alarm clock
 #include "machine.h"
 #include "bitmap.h"
 #include "synch.h"
+#include "NachosSemaphoresTable.h"
 extern Machine* machine;	// user program memory and registers
 extern BitMap* mapMemoria;		// Declares a global variable defined elsewhere
 extern Semaphore *consoleSem;
+
+extern NachosOpenFilesTable* filesTable;
+extern Semaphore *opFileTableSem;
+extern NachosSemaphoresTable* semTable;
 
 extern BitMap* processId; //id de procesos
 extern Semaphore * joinSem;

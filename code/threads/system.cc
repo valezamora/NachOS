@@ -39,6 +39,11 @@ Machine *machine;	// user program memory and registers
 BitMap *mapMemoria;		// Variable definition, no extern prepended
 Semaphore *consoleSem;
 
+NachosOpenFilesTable* filesTable;
+Semaphore *opFileTableSem;
+NachosSemaphoresTable* semTable;
+
+
 BitMap* processId; //id de procesos
 Semaphore * joinSem;
 void* semaforosJoin[MaxProcesses];
@@ -108,6 +113,10 @@ Initialize(int argc, char **argv)
     bool debugUserProg = false;	// single step user program
     mapMemoria = new BitMap(32);
     consoleSem = new Semaphore("semConsola", 1);
+
+    opFileTableSem = new Semaphore("semFiles", 1);
+    filesTable = new NachosOpenFilesTable();
+    semTable = new NachosSemaphoresTable();
     
     processId  = new BitMap(MaxProcesses);
     joinSem = new Semaphore("semJoin", 1);	//semaforo para ED

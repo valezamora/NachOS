@@ -75,6 +75,8 @@ void Nachos_Exit(){			//System call 1
 	
 	//matar archivos
 	
+	filesTable->delThread();
+	
 	//matar semaforos
 
 	//Revisar si hay alguien que esta esperandome (join)
@@ -139,7 +141,6 @@ void Nachos_Exec(){			//System call 2
 }
 
 void Nachos_Join(){		//System call 3
-	printf("Entro al join");
 	int newPid = machine->ReadRegister(4);
 	int result = 0;
 	if(processId->Test(newPid)){
@@ -160,6 +161,20 @@ void Nachos_Join(){		//System call 3
 }
 
 void Nachos_Create(){		//System call 4
+	int nameDir = machine->ReadRegister(4);
+	char * filename = new char[100];
+	//leer input 
+	int num = 99;
+	int i = 0;
+	while(num != '\0'){	
+		machine->ReadMem(nameDir+i , 1, &num);
+		filename[i] = (char)num;
+		++i;
+	}
+	
+	int result = open(filename, O_CREAT, S_IRWXO);
+	close(result);
+	
 	returnFromSystemCall();
 }
 
@@ -189,18 +204,24 @@ void Nachos_Open() {                    // System call 5
 	int result = -1;
 	int unixHandle = open(filename, O_RDWR);	//abre el archivo y guarda el identificador
 	if(unixHandle != -1){
-		result = currentThread->table->Open(unixHandle);
+		result = filesTable->Open(unixHandle);
 	}
 	
 	machine->WriteRegister(2, result);
 	
 	returnFromSystemCall();		// Update the PC registers
-	
-	
 }       // Nachos_Open
 
 
 void Nachos_Read(){			//system call 6
+	int bufDir = machine->ReadRegister(4); 	//buffer       
+    int size = machine->ReadRegister(5);	// Read size to write
+   	int id = machine->ReadRegister( 6 );	// Read file descriptor
+   	int idUnix = filesTable->getUnixHandle(id);
+	int bytesRead = read(idUnix, &bufDir, size);
+	
+	machine->WriteRegister( 2, bytesRead);
+	
 	returnFromSystemCall();
 }
 
@@ -245,8 +266,8 @@ void Nachos_Write() {                   // System call 7
 			// Get the unix handle from our table for open files
 			// Do the write to the already opened Unix file
 			// Return the number of chars written to user, via r2
-			if(currentThread->table->isOpened(id)){
-				int unixHandle = currentThread->table->getUnixHandle(id);
+			if(filesTable->isOpened(id)){
+				int unixHandle = filesTable->getUnixHandle(id);
 				int result = write(unixHandle, buffer, size);
 				machine->WriteRegister(2, result);
 			}else{
@@ -259,19 +280,23 @@ void Nachos_Write() {                   // System call 7
 	// Update simulation stats, see details in Statistics class in machine/stats.cc
 	consoleSem->V();
 
-        returnFromSystemCall();		// Update the PC registers
+    returnFromSystemCall();		// Update the PC registers
 
 }       // Nachos_Write
 
 void Nachos_Close(){		//System call 8
+	int fileId = machine->ReadRegister(4);
+	int unixId = filesTable->getUnixHandle(fileId);
+	close(unixId);
 	returnFromSystemCall();
 }
+
+
 // Pass the user routine address as a parameter for this function
 // This function is similar to "StartProcess" in "progtest.cc" file under "userprog"
 // Requires a correct AddrSpace setup to work well
 
 void NachosForkThread( void * p ) { // for 64 bits version
-
     AddrSpace *space;
 
     space = currentThread->space;
@@ -318,30 +343,37 @@ void Nachos_Fork() {			// System call 9
 
 
 void Nachos_Yield(){	//System call 10
-	
 	currentThread->Yield();
 	returnFromSystemCall();
 }
 
 
 void Nachos_SemCreate(){	//System call 11
-
+	int ini = machine->ReadRegister(4);
+	int ret = semTable->CreateSemaphore(ini);
+	machine->WriteRegister(2, ret);
 }
 
 
 void Nachos_SemDestroy(){		//System call 12
-
+	int semId = machine->ReadRegister(4);
+	int ret = semTable->DelSemaphore(semId);
+	machine->WriteRegister(2, ret);
 }
 
 
 void Nachos_SemSignal(){		//System call 13
-
+	int ini = machine->ReadRegister(4);
+	int ret = semTable->signalSem(ini);
+	machine->WriteRegister(2, ret);
 }
 
 
 
 void Nachos_SemWait(){		//System call 14
-
+	int ini = machine->ReadRegister(4);
+	int ret = semTable->waitSem(ini);
+	machine->WriteRegister(2, ret);
 }
 
 //----------------------------------------------------------------------
@@ -379,27 +411,48 @@ void ExceptionHandler(ExceptionType which)
              case SC_Halt:
                 Nachos_Halt();             // System call #0
                 break;
-             case SC_Open:
-                Nachos_Open();             // System call #5
-                break;
-             case SC_Write:
-                Nachos_Write();             // System call #7
-                break;
-             case SC_Exit:					// System call #8
+             case SC_Exit:					// System call #1
              	//devolver memoria
 				Nachos_Exit();
-             	break;
-             case SC_Fork:					//System call #9
-             	Nachos_Fork();
-             	break;
-             case SC_Yield:
-             	Nachos_Yield();
              	break;
              case SC_Exec:
              	Nachos_Exec();
              	break;
              case SC_Join:
              	Nachos_Join();
+             	break;
+             case SC_Create:				
+                Nachos_Create();             // System call #4
+                break;
+             case SC_Open:
+                Nachos_Open();             // System call #5
+                break;
+             case SC_Read:
+                Nachos_Read();             // System call #6
+                break;
+             case SC_Write:
+                Nachos_Write();             // System call #7
+                break;
+             case SC_Close:
+                Nachos_Close();             // System call #
+                break;
+             case SC_Fork:					//System call #9
+             	Nachos_Fork();
+             	break;
+             case SC_Yield:
+             	Nachos_Yield();
+             	break;
+             case SC_SemCreate:
+             	Nachos_SemCreate();
+             	break;
+             case SC_SemDestroy:
+             	Nachos_SemDestroy();
+             	break;
+             case SC_SemSignal:
+             	Nachos_SemSignal();
+             	break;
+             case SC_SemWait:
+             	Nachos_SemWait();
              	break;
              default:
                 printf("Unexpected syscall exception %d\n", type );
